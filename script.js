@@ -12,6 +12,7 @@ let topLayer = 10;
 
 objects.forEach((object) => {
   object.addEventListener('pointerdown', (event) => {
+    if (event.target.closest('a')) return;
     active = object;
     const itemRect = object.getBoundingClientRect();
     const paletteRect = palette.getBoundingClientRect();
