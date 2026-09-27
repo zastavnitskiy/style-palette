@@ -3,80 +3,58 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#d9ff43" />
-  <meta name="description" content="A playful visual wardrobe — collected, cut out, and styled." />
-  <title>Worn Well — Pavel's Style Palette</title>
+  <meta name="theme-color" content="#f3f3ef" />
+  <meta name="description" content="A personal visual wardrobe." />
+  <title>Palette</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <header class="topbar">
-    <a class="brand" href="#" aria-label="Worn Well home">WORN/WELL<span>®</span></a>
-    <p class="edition">STYLE PALETTE <span>№ 001</span></p>
-    <button class="about-button" type="button" aria-expanded="false">ABOUT <span>↗</span></button>
+  <header class="bar">
+    <a class="wordmark" href="/441294944" aria-label="Palette home">PALETTE</a>
+    <p class="owner">USER/<span data-user-id>—</span></p>
+    <p class="status"><i aria-hidden="true"></i> 04 OBJECTS</p>
   </header>
 
   <main>
-    <section class="hero" aria-labelledby="page-title">
-      <div class="hero-copy">
-        <p class="eyebrow">CURATED BY PAVEL · AUTUMN 2026</p>
-        <h1 id="page-title">Things I’d<br /><em>actually</em> wear.</h1>
-        <p class="intro">A living palette of clothes, shoes, and objects collected from around the internet.</p>
-      </div>
+    <section class="canvas" id="palette" aria-label="Draggable clothing palette">
+      <p class="coordinate north">WARDROBE INDEX / 2026</p>
+      <p class="coordinate east">DRAG OBJECTS</p>
+      <p class="coordinate south">PRIVATE COLLECTION</p>
 
-      <div class="palette" id="palette" aria-label="Draggable clothing moodboard">
-        <div class="orbit orbit-one"></div>
-        <div class="orbit orbit-two"></div>
-        <p class="drag-note">DRAG TO<br />REARRANGE ↘</p>
+      <article class="object sweater" data-name="COBALT KNIT">
+        <img src="/assets/cobalt-knit.png" alt="Oversized cobalt blue knit sweater" draggable="false" />
+        <p><b>01</b> COBALT KNIT</p>
+      </article>
 
-        <article class="sticker sweater" data-name="COBALT KNIT">
-          <span class="index">01</span>
-          <img src="assets/cobalt-knit.png" alt="Oversized cobalt blue knit sweater" draggable="false" />
-          <a href="#item-01" class="item-tag">COBALT KNIT <span>↗</span></a>
-        </article>
+      <article class="object trousers" data-name="WIDE TROUSER">
+        <img src="/assets/charcoal-trousers.png" alt="Charcoal wide-leg tailored trousers" draggable="false" />
+        <p><b>02</b> WIDE TROUSER</p>
+      </article>
 
-        <article class="sticker trousers" data-name="WIDE TROUSER">
-          <span class="index">02</span>
-          <img src="assets/charcoal-trousers.png" alt="Charcoal wide-leg tailored trousers" draggable="false" />
-          <a href="#item-02" class="item-tag">WIDE TROUSER <span>↗</span></a>
-        </article>
+      <article class="object sneakers" data-name="SUNNY SUEDE">
+        <img src="/assets/butter-sneakers.png" alt="Butter yellow suede sneakers" draggable="false" />
+        <p><b>03</b> SUNNY SUEDE</p>
+      </article>
 
-        <article class="sticker sneakers" data-name="SUNNY SUEDE">
-          <span class="index">03</span>
-          <img src="assets/butter-sneakers.png" alt="Butter yellow suede sneakers" draggable="false" />
-          <a href="#item-03" class="item-tag">SUNNY SUEDE <span>↗</span></a>
-        </article>
+      <article class="object bag" data-name="CHERRY GLOSS">
+        <img src="/assets/cherry-bag.png" alt="Cherry red glossy shoulder bag" draggable="false" />
+        <p><b>04</b> CHERRY GLOSS</p>
+      </article>
 
-        <article class="sticker bag" data-name="CHERRY GLOSS">
-          <span class="index">04</span>
-          <img src="assets/cherry-bag.png" alt="Cherry red glossy shoulder bag" draggable="false" />
-          <a href="#item-04" class="item-tag">CHERRY GLOSS <span>↗</span></a>
-        </article>
-
-        <div class="swatches" aria-label="Palette colors">
-          <span style="--color:#164de1"></span><span style="--color:#f4d968"></span><span style="--color:#a20f19"></span><span style="--color:#272727"></span>
-        </div>
-      </div>
-    </section>
-
-    <section class="manifesto" aria-label="About this collection">
-      <p>NOT A WISHLIST.</p>
-      <p>A POINT OF VIEW.</p>
-      <span>Four finds · one outfit · endless combinations</span>
+      <div class="crosshair" aria-hidden="true"><span></span></div>
     </section>
   </main>
 
-  <aside class="about-panel" aria-hidden="true">
-    <button class="close-panel" type="button" aria-label="Close about panel">×</button>
-    <p class="eyebrow">HOW IT WORKS</p>
-    <h2>Your links.<br />One visual wardrobe.</h2>
-    <p>Send an item from any online store. It gets transformed into a clean, sticker-like cutout and added to this evolving style palette.</p>
-    <p class="panel-note">This first edition uses fictional demo products.</p>
-  </aside>
-  <div class="scrim"></div>
+  <footer class="rail">
+    <p>PERSONAL PALETTE <span>№001</span></p>
+    <button type="button" id="copy-api">API / <span>POST /api/items</span></button>
+    <p>UPDATED <time datetime="2026-09-27">27.09.26</time></p>
+  </footer>
 
-  <script src="script.js"></script>
+  <div class="toast" role="status" aria-live="polite">ENDPOINT COPIED</div>
+  <script src="/script.js"></script>
 </body>
 </html>

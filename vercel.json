@@ -1,5 +1,11 @@
 {
   "cleanUrls": true,
+  "redirects": [
+    { "source": "/", "destination": "/441294944", "permanent": false }
+  ],
+  "rewrites": [
+    { "source": "/:userId", "destination": "/index.html" }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",
