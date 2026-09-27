@@ -62,11 +62,48 @@ main { min-height: calc(100svh - 104px); padding: var(--unit); }
 .south { left: 50%; bottom: 8px; transform: translateX(-50%); }
 
 .object { position: absolute; z-index: 5; cursor: grab; touch-action: none; user-select: none; filter: drop-shadow(7px 9px 0 rgba(11,11,11,.86)); transition: filter 120ms linear; }
+.object[hidden] { display: none; }
 .object:active { cursor: grabbing; filter: drop-shadow(12px 14px 0 rgba(11,11,11,.86)); }
 .object img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
 .object p, .object-label { position: absolute; left: 50%; bottom: 1px; transform: translateX(-50%); margin: 0; padding: 6px 8px; border: 1px solid var(--ink); background: var(--paper); color: var(--ink); font-size: 8px; line-height: 1; white-space: nowrap; text-decoration: none; }
 .object p b, .object-label b { margin-right: 7px; font-weight: 500; }
 .object-label:hover, .object-label:focus-visible { background: var(--ink); color: var(--paper); }
+.remove-object {
+  position: absolute;
+  z-index: 4;
+  top: 4px;
+  right: 4px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 17px;
+  line-height: 24px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms linear, background 120ms linear, color 120ms linear;
+}
+.object:hover .remove-object, .object:focus-within .remove-object { opacity: 1; pointer-events: auto; }
+.remove-object:hover, .remove-object:focus-visible { background: var(--ink); color: var(--paper); outline: 0; }
+.restore-items {
+  position: absolute;
+  z-index: 14;
+  left: 8px;
+  top: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 8px;
+  line-height: 1;
+  letter-spacing: .08em;
+}
+.restore-items:hover, .restore-items:focus-visible { background: var(--ink); color: var(--paper); }
 
 .sweater { width: clamp(285px, 36vw, 470px); height: clamp(270px, 34vw, 450px); left: 8%; top: 4%; transform: rotate(-8deg); }
 .trousers { width: clamp(190px, 23vw, 305px); height: clamp(350px, 43vw, 575px); right: 8%; top: 3%; transform: rotate(5deg); }
@@ -85,8 +122,10 @@ main { min-height: calc(100svh - 104px); padding: var(--unit); }
 .rail button:hover { background: var(--ink); color: var(--paper); }
 .rail span { opacity: .5; }
 
-.toast { position: fixed; z-index: 50; left: 50%; bottom: 70px; transform: translate(-50%, 15px); background: var(--ink); color: var(--paper); padding: 10px 14px; font-size: 9px; opacity: 0; pointer-events: none; transition: 160ms linear; }
-.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast { position: fixed; z-index: 50; left: 50%; bottom: 70px; display: flex; align-items: center; gap: 12px; transform: translate(-50%, 15px); background: var(--ink); color: var(--paper); padding: 8px 10px 8px 14px; font-size: 9px; opacity: 0; pointer-events: none; transition: 160ms linear; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.toast button { padding: 4px 7px; border: 1px solid var(--paper); background: transparent; color: var(--paper); cursor: pointer; font-size: 9px; }
+.toast button:hover, .toast button:focus-visible { background: var(--paper); color: var(--ink); }
 
 @media (max-width: 720px) {
   .bar, .rail { grid-template-columns: 1fr 1fr; padding: 0 14px; height: 48px; }
@@ -99,6 +138,10 @@ main { min-height: calc(100svh - 104px); padding: var(--unit); }
   .bag { width: 43vw; height: 43vw; right: 0; bottom: 5%; }
   .socks { width: 29vw; height: 50vw; left: 36%; top: 31%; }
   .michael { width: 49vw; height: 21vw; left: 26%; bottom: 28%; }
+}
+
+@media (hover: none) {
+  .remove-object { opacity: 1; pointer-events: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; } }
