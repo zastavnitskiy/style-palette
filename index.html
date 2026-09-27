@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#d9ff43" />
+  <meta name="description" content="A playful visual wardrobe — collected, cut out, and styled." />
+  <title>Worn Well — Pavel's Style Palette</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="Worn Well home">WORN/WELL<span>®</span></a>
+    <p class="edition">STYLE PALETTE <span>№ 001</span></p>
+    <button class="about-button" type="button" aria-expanded="false">ABOUT <span>↗</span></button>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-copy">
+        <p class="eyebrow">CURATED BY PAVEL · AUTUMN 2026</p>
+        <h1 id="page-title">Things I’d<br /><em>actually</em> wear.</h1>
+        <p class="intro">A living palette of clothes, shoes, and objects collected from around the internet.</p>
+      </div>
+
+      <div class="palette" id="palette" aria-label="Draggable clothing moodboard">
+        <div class="orbit orbit-one"></div>
+        <div class="orbit orbit-two"></div>
+        <p class="drag-note">DRAG TO<br />REARRANGE ↘</p>
+
+        <article class="sticker sweater" data-name="COBALT KNIT">
+          <span class="index">01</span>
+          <img src="public/assets/cobalt-knit.png" alt="Oversized cobalt blue knit sweater" draggable="false" />
+          <a href="#item-01" class="item-tag">COBALT KNIT <span>↗</span></a>
+        </article>
+
+        <article class="sticker trousers" data-name="WIDE TROUSER">
+          <span class="index">02</span>
+          <img src="public/assets/charcoal-trousers.png" alt="Charcoal wide-leg tailored trousers" draggable="false" />
+          <a href="#item-02" class="item-tag">WIDE TROUSER <span>↗</span></a>
+        </article>
+
+        <article class="sticker sneakers" data-name="SUNNY SUEDE">
+          <span class="index">03</span>
+          <img src="public/assets/butter-sneakers.png" alt="Butter yellow suede sneakers" draggable="false" />
+          <a href="#item-03" class="item-tag">SUNNY SUEDE <span>↗</span></a>
+        </article>
+
+        <article class="sticker bag" data-name="CHERRY GLOSS">
+          <span class="index">04</span>
+          <img src="public/assets/cherry-bag.png" alt="Cherry red glossy shoulder bag" draggable="false" />
+          <a href="#item-04" class="item-tag">CHERRY GLOSS <span>↗</span></a>
+        </article>
+
+        <div class="swatches" aria-label="Palette colors">
+          <span style="--color:#164de1"></span><span style="--color:#f4d968"></span><span style="--color:#a20f19"></span><span style="--color:#272727"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="manifesto" aria-label="About this collection">
+      <p>NOT A WISHLIST.</p>
+      <p>A POINT OF VIEW.</p>
+      <span>Four finds · one outfit · endless combinations</span>
+    </section>
+  </main>
+
+  <aside class="about-panel" aria-hidden="true">
+    <button class="close-panel" type="button" aria-label="Close about panel">×</button>
+    <p class="eyebrow">HOW IT WORKS</p>
+    <h2>Your links.<br />One visual wardrobe.</h2>
+    <p>Send an item from any online store. It gets transformed into a clean, sticker-like cutout and added to this evolving style palette.</p>
+    <p class="panel-note">This first edition uses fictional demo products.</p>
+  </aside>
+  <div class="scrim"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
