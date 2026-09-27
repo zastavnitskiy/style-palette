@@ -70,10 +70,10 @@ main { min-height: calc(100svh - 104px); padding: var(--unit); }
 
 .sweater { width: clamp(285px, 36vw, 470px); height: clamp(270px, 34vw, 450px); left: 8%; top: 4%; transform: rotate(-8deg); }
 .trousers { width: clamp(190px, 23vw, 305px); height: clamp(350px, 43vw, 575px); right: 8%; top: 3%; transform: rotate(5deg); }
-.sneakers { width: clamp(290px, 37vw, 490px); height: clamp(205px, 26vw, 345px); left: 5%; bottom: 3%; transform: rotate(3deg); }
-.bag { width: clamp(235px, 29vw, 380px); height: clamp(225px, 28vw, 370px); right: 12%; bottom: 1%; transform: rotate(-8deg); }
-.socks { width: clamp(170px, 20vw, 260px); height: clamp(290px, 34vw, 445px); left: 40%; top: 22%; z-index: 7; transform: rotate(9deg); }
-.michael { width: clamp(330px, 40vw, 525px); height: clamp(145px, 17vw, 220px); left: 29%; bottom: 20%; z-index: 6; transform: rotate(-3deg); }
+.sneakers { width: clamp(210px, 24vw, 315px); height: clamp(145px, 17vw, 220px); left: 8%; bottom: 7%; transform: rotate(3deg); }
+.bag { width: clamp(185px, 21vw, 285px); height: clamp(180px, 21vw, 275px); right: 12%; bottom: 5%; transform: rotate(-8deg); }
+.socks { width: clamp(125px, 14vw, 185px); height: clamp(215px, 24vw, 315px); left: 43%; top: 28%; z-index: 7; transform: rotate(9deg); }
+.michael { width: clamp(210px, 24vw, 315px); height: clamp(90px, 10vw, 135px); left: 36%; bottom: 23%; z-index: 6; transform: rotate(-3deg); }
 
 .crosshair { position: absolute; z-index: 2; left: 50%; top: 50%; width: 80px; height: 80px; transform: translate(-50%, -50%); border: 1px solid var(--ink); border-radius: 50%; }
 .crosshair::before, .crosshair::after { content: ""; position: absolute; background: var(--ink); }
@@ -95,10 +95,10 @@ main { min-height: calc(100svh - 104px); padding: var(--unit); }
   .canvas { height: calc(100svh - 116px); min-height: 600px; }
   .sweater { width: 72vw; height: 67vw; left: -9%; top: 6%; }
   .trousers { width: 44vw; height: 82vw; right: -7%; top: 5%; }
-  .sneakers { width: 78vw; height: 50vw; left: -10%; bottom: 4%; }
-  .bag { width: 56vw; height: 56vw; right: -3%; bottom: 3%; }
-  .socks { width: 40vw; height: 69vw; left: 30%; top: 27%; }
-  .michael { width: 78vw; height: 34vw; left: 11%; bottom: 21%; }
+  .sneakers { width: 49vw; height: 32vw; left: 2%; bottom: 10%; }
+  .bag { width: 43vw; height: 43vw; right: 0; bottom: 5%; }
+  .socks { width: 29vw; height: 50vw; left: 36%; top: 31%; }
+  .michael { width: 49vw; height: 21vw; left: 26%; bottom: 28%; }
 }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; } }
