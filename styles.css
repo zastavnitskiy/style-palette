@@ -111,6 +111,8 @@ main { min-height: calc(100svh - 104px); padding: var(--unit); }
 .bag { width: clamp(185px, 21vw, 285px); height: clamp(180px, 21vw, 275px); right: 12%; bottom: 5%; transform: rotate(-8deg); }
 .socks { width: clamp(125px, 14vw, 185px); height: clamp(215px, 24vw, 315px); left: 43%; top: 28%; z-index: 7; transform: rotate(9deg); }
 .michael { width: clamp(210px, 24vw, 315px); height: clamp(90px, 10vw, 135px); left: 36%; bottom: 23%; z-index: 6; transform: rotate(-3deg); }
+.melor { width: clamp(180px, 22vw, 290px); height: clamp(340px, 42vw, 560px); right: 27%; top: 5%; transform: rotate(-4deg); }
+.durham { width: clamp(125px, 14vw, 185px); height: clamp(220px, 25vw, 325px); left: 57%; bottom: 8%; z-index: 8; transform: rotate(6deg); }
 
 .crosshair { position: absolute; z-index: 2; left: 50%; top: 50%; width: 80px; height: 80px; transform: translate(-50%, -50%); border: 1px solid var(--ink); border-radius: 50%; }
 .crosshair::before, .crosshair::after { content: ""; position: absolute; background: var(--ink); }
@@ -138,6 +140,8 @@ main { min-height: calc(100svh - 104px); padding: var(--unit); }
   .bag { width: 43vw; height: 43vw; right: 0; bottom: 5%; }
   .socks { width: 29vw; height: 50vw; left: 36%; top: 31%; }
   .michael { width: 49vw; height: 21vw; left: 26%; bottom: 28%; }
+  .melor { width: 42vw; height: 80vw; right: 19%; top: 10%; }
+  .durham { width: 29vw; height: 51vw; left: 57%; bottom: 17%; }
 }
 
 @media (hover: none) {
