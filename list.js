@@ -1,13 +1,13 @@
 import { uniqueProducts } from '/catalog.mjs';
 
-const table=document.querySelector('#catalog'),count=document.querySelector('#item-count'),canvasLink=document.querySelector('#canvas-link'),toast=document.querySelector('#toast');
+const table=document.querySelector('#catalog'),count=document.querySelector('#item-count'),canvasLink=document.querySelector('#canvas-link'),shopsLink=document.querySelector('#shops-link'),toast=document.querySelector('#toast');
 const routeUserId=location.pathname.split('/').filter(Boolean)[0]||'441294944';
 const userId=/^[a-zA-Z0-9_-]{1,64}$/.test(routeUserId)?routeUserId:'441294944';
 const endpoint=`/api/palette?user_id=${encodeURIComponent(userId)}`;
 const categories=[['outerwear','OUTERWEAR'],['tops','TOPS'],['bottoms','BOTTOMS'],['footwear','FOOTWEAR'],['bags','BAGS'],['accessories','ACCESSORIES'],['other','OTHER']];
 const statuses=[['owned','OWNED'],['to_buy','TO BUY'],['other','OTHER']];
 let timer;
-document.title=`Wardrobe / ${userId}`;canvasLink.href=`/${encodeURIComponent(userId)}`;
+document.title=`Wardrobe / ${userId}`;canvasLink.href=`/${encodeURIComponent(userId)}`;shopsLink.href=`/${encodeURIComponent(userId)}/shops`;
 
 function message(value){clearTimeout(timer);toast.textContent=value;toast.classList.add('show');timer=setTimeout(()=>toast.classList.remove('show'),2200)}
 function optionList(values,current){return values.map(([value,label])=>`<option value="${value}"${value===current?' selected':''}>${label}</option>`).join('')}

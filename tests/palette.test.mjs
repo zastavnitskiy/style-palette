@@ -21,7 +21,8 @@ test('assigns smaller widths to accessories than garments', () => {
 });
 test('normalizes older items into one catalog product per original id', () => {
   const state = normalizePalette({ version: 1, items: [{ id: 'jeans', title: 'Wide jeans' }] });
-  assert.equal(state.version, 2);
+  assert.equal(state.version, 3);
+  assert.deepEqual(state.manual_shops, []);
   assert.deepEqual(state.items[0], {
     id: 'jeans', title: 'Wide jeans', catalog_id: 'jeans', category: 'bottoms',
     price: null, currency: null, wardrobe_status: 'other'

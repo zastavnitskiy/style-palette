@@ -29,8 +29,9 @@ export function inferCategory(title = '') {
 }
 
 export function normalizePalette(state) {
-  state.version = Math.max(2, Number(state.version) || 1);
+  state.version = Math.max(3, Number(state.version) || 1);
   state.items = Array.isArray(state.items) ? state.items : [];
+  state.manual_shops = Array.isArray(state.manual_shops) ? state.manual_shops : [];
   for (const item of state.items) {
     item.catalog_id ||= item.id;
     item.category ||= inferCategory(item.title);
@@ -46,7 +47,7 @@ export function validUserId(value) {
 }
 
 export function initialPalette(userId) {
-  return { version: 2, user_id: userId, items: structuredClone(defaultItems), updated_at: new Date().toISOString() };
+  return { version: 3, user_id: userId, items: structuredClone(defaultItems), manual_shops: [], updated_at: new Date().toISOString() };
 }
 
 function statePrefix(userId) { return `palettes/${userId}/states/`; }

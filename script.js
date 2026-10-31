@@ -1,4 +1,4 @@
-const palette=document.querySelector('#palette'),scene=document.querySelector('#scene'),selectionControls=document.querySelector('#selection-controls'),addButton=document.querySelector('#add-button'),listButton=document.querySelector('#list-button'),intake=document.querySelector('#intake'),intakeClose=document.querySelector('#intake-close'),input=document.querySelector('#product-input'),priceInput=document.querySelector('#price-input'),currencyInput=document.querySelector('#currency-input'),toast=document.querySelector('#toast');
+const palette=document.querySelector('#palette'),scene=document.querySelector('#scene'),selectionControls=document.querySelector('#selection-controls'),addButton=document.querySelector('#add-button'),listButton=document.querySelector('#list-button'),shopButton=document.querySelector('#shop-button'),intake=document.querySelector('#intake'),intakeClose=document.querySelector('#intake-close'),input=document.querySelector('#product-input'),priceInput=document.querySelector('#price-input'),currencyInput=document.querySelector('#currency-input'),toast=document.querySelector('#toast');
 const routeUserId=location.pathname.split('/').filter(Boolean)[0]||'441294944';
 const userId=/^[a-zA-Z0-9_-]{1,64}$/.test(routeUserId)?routeUserId:'441294944';
 const endpoint=`/api/palette?user_id=${encodeURIComponent(userId)}`;
@@ -6,6 +6,7 @@ let state={items:[]},selectedId=null,gesture=null,toastTimer,pollTimer,canvasGes
 const touchPoints=new Map(),viewport={x:0,y:0,scale:1};
 document.title=`Palette / ${userId}`;
 listButton.href=`/${encodeURIComponent(userId)}/list`;
+shopButton.href=`/${encodeURIComponent(userId)}/shops`;
 
 function message(text){clearTimeout(toastTimer);toast.textContent=text;toast.classList.add('show');toastTimer=setTimeout(()=>toast.classList.remove('show'),3200)}
 async function api(options={}){const response=await fetch(endpoint,{credentials:'same-origin',...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});const body=await response.json().catch(()=>({}));if(!response.ok)throw new Error(body.error||`HTTP_${response.status}`);return body}

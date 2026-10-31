@@ -4,6 +4,7 @@
     { "source": "/", "destination": "/441294944", "permanent": false }
   ],
   "rewrites": [
+    { "source": "/:userId/shops", "destination": "/shops.html" },
     { "source": "/:userId/list", "destination": "/list.html" },
     { "source": "/:userId", "destination": "/" }
   ],

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f3f3ef"><meta name="description" content="Shops in your personal wardrobe.">
+<title>Shops</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="/shops.css">
+</head><body>
+<header class="page-header">
+  <div><p>PERSONAL CATALOG</p><h1>SHOPS</h1></div>
+  <nav><span id="shop-count">…</span><a id="wardrobe-link" href="/441294944/list">WARDROBE</a><a class="primary" id="canvas-link" href="/441294944">CANVAS ↗</a></nav>
+</header>
+<main>
+  <section class="intro">
+    <p>Every store represented in your wardrobe, plus shops you want to remember.</p>
+    <button id="add-toggle" type="button" aria-expanded="false" aria-controls="shop-form">+ ADD SHOP</button>
+  </section>
+  <form id="shop-form" hidden>
+    <label>SHOP URL<input id="shop-url" type="text" inputmode="url" maxlength="500" placeholder="example.com" required></label>
+    <label>DISPLAY NAME <span>OPTIONAL</span><input id="shop-name" type="text" maxlength="80" placeholder="Example"></label>
+    <div class="form-actions"><button class="cancel" id="cancel-add" type="button">CANCEL</button><button class="submit" type="submit">SAVE SHOP</button></div>
+  </form>
+  <section class="shop-grid" id="shops" aria-live="polite"><p class="empty">LOADING SHOPS…</p></section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script type="module" src="/shops.js"></script>
+</body></html>
