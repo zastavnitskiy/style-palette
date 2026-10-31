@@ -162,6 +162,13 @@ export function selectProductImageSearchResults(results, pageUrl) {
     .map(candidate => candidate.url);
 }
 
+export function duckDuckGoSearchToken(html) {
+  const source = String(html || '');
+  return /\bvqd=["']?([\d-]+)/.exec(source)?.[1] ||
+    /\bname=["']vqd["'][^>]*\bvalue=["']([\d-]+)/i.exec(source)?.[1] ||
+    /\bvalue=["']([\d-]+)["'][^>]*\bname=["']vqd["']/i.exec(source)?.[1] || null;
+}
+
 export function parseShopifyProductJson(value, baseUrl) {
   const raw = String(value || '').trim();
   const pre = /<pre[^>]*>([\s\S]*?)<\/pre>/i.exec(raw)?.[1];
@@ -621,7 +628,14 @@ async function duckDuckGoImageProduct(url) {
   });
   if (!searchPage.ok) throw new Error(`OCTOBRE_SEARCH_PAGE_${searchPage.status}`);
   const html = await searchPage.text();
-  const token = /\bvqd=["']?([\d-]+)/.exec(html)?.[1] || /\bvqd="([^"]+)/.exec(html)?.[1];
+  let token = duckDuckGoSearchToken(html);
+  if (!token) {
+    const htmlSearch = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'text/html' },
+      signal: AbortSignal.timeout(12000)
+    });
+    if (htmlSearch.ok) token = duckDuckGoSearchToken(await htmlSearch.text());
+  }
   if (!token) throw new Error('OCTOBRE_SEARCH_TOKEN_MISSING');
   const endpoint = new URL('https://duckduckgo.com/i.js');
   endpoint.searchParams.set('l', 'us-en');
@@ -683,7 +697,7 @@ async function openAiWebProduct(url) {
           }
         }
       },
-      max_output_tokens: 1200
+      max_output_tokens: 3000
     }),
     signal: AbortSignal.timeout(60000)
   });

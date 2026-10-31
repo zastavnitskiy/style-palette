@@ -3,6 +3,7 @@ import test from 'node:test';
 import { deflateSync, inflateSync } from 'node:zlib';
 import handler, {
   cleanStickerPng,
+  duckDuckGoSearchToken,
   hasTransparency,
   parseProductHtml,
   parseOpenAiProductResponse,
@@ -145,6 +146,12 @@ test('normalizes Octobre and mirrored Sezane product URL identities', () => {
   assert.deepEqual(productUrlIdentity('https://www.sezane.com/us-en/product/octobre-editions/nils-sweater/burgundy'), {
     handle: 'nils-sweater', variant: 'burgundy'
   });
+});
+
+test('extracts DuckDuckGo search tokens from JavaScript and HTML-only responses', () => {
+  assert.equal(duckDuckGoSearchToken('<script>vqd="4-123456"</script>'), '4-123456');
+  assert.equal(duckDuckGoSearchToken('<input type="hidden" name="vqd" value="4-987654" />'), '4-987654');
+  assert.equal(duckDuckGoSearchToken('<input value="4-555" name="vqd">'), '4-555');
 });
 
 test('selects exact Octobre image-search matches and rejects wrong variants', () => {
