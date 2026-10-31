@@ -92,6 +92,12 @@ export function shopifyProductJsonUrl(value) {
   return url.href;
 }
 
+export function shopifyProductApiUrls(value) {
+  const jsonUrl = shopifyProductJsonUrl(value);
+  if (!jsonUrl) return [];
+  return [jsonUrl.replace(/\.json$/i, '.js'), jsonUrl];
+}
+
 export function parseShopifyProductJson(value, baseUrl) {
   const raw = String(value || '').trim();
   const pre = /<pre[^>]*>([\s\S]*?)<\/pre>/i.exec(raw)?.[1];
@@ -125,6 +131,69 @@ export function parseShopifyProductJson(value, baseUrl) {
     currency: product.currency ? String(product.currency).toUpperCase() : null,
     category: String(product.product_type || product.category || '').trim() || null
   };
+}
+
+function urlTokens(value) {
+  try {
+    const url = new URL(value);
+    return decodeURIComponent(url.pathname).toLowerCase().split(/[^a-z0-9]+/).filter(token => token.length >= 4);
+  } catch { return []; }
+}
+
+function cloudinaryDimensions(url) {
+  try {
+    const decoded = decodeURIComponent(new URL(url).pathname);
+    const width = Number(/(?:^|[,/])w_(\d{2,5})(?:[,/]|$)/i.exec(decoded)?.[1] || 0);
+    const height = Number(/(?:^|[,/])h_(\d{2,5})(?:[,/]|$)/i.exec(decoded)?.[1] || 0);
+    return { width, height };
+  } catch { return { width: 0, height: 0 }; }
+}
+
+export function productImageScore(imageUrl, pageUrl = '', position = 0) {
+  let image;
+  let page;
+  try {
+    image = new URL(imageUrl, pageUrl);
+    page = new URL(pageUrl);
+  } catch { return -1000; }
+  const decodedPath = decodeURIComponent(image.pathname).toLowerCase();
+  const assetName = decodedPath.split('/').at(-1) || '';
+  let score = Math.max(0, 20 - position);
+  if (/\.(?:jpe?g|png|webp)(?:$|[?#])/i.test(image.href)) score += 10;
+  if (image.protocol === 'https:') score += 3;
+  if (image.hostname === page.hostname) score += 6;
+  if (/\/image\/upload\//i.test(decodedPath)) score += 12;
+  const dimensions = cloudinaryDimensions(image.href);
+  if (dimensions.width >= 400 && dimensions.height >= 400) score += 24;
+  else if (dimensions.width >= 200 || dimensions.height >= 200) score += 8;
+  for (const token of [...new Set(urlTokens(page.href))]) {
+    if (decodedPath.includes(token)) score += 4;
+  }
+  if (page.hostname.endsWith('octobre-editions.com')) {
+    if (image.hostname === 'media.octobre-editions.com' && /\/image\/upload\//i.test(decodedPath)) score += 50;
+    else if (!image.hostname.endsWith('octobre-editions.com')) score -= 20;
+  }
+  // Inspect the actual public asset name only. Cloudinary's d_placeholder_* transform is a
+  // fallback instruction and can coexist with a valid product image public ID.
+  if (/(?:^|[-_.])(logo|favicon|sprite|icon|avatar|newsletter|social|share|loader)(?:[-_.]|$)/i.test(assetName)) score -= 120;
+  if (/(?:^|[-_.])(banner|homepage|storefront|generic)(?:[-_.]|$)/i.test(assetName)) score -= 45;
+  return score;
+}
+
+export function rankProductImages(images, pageUrl = '') {
+  const unique = [...new Set((images || []).map(value => absoluteUrl(value, pageUrl)).filter(Boolean))];
+  return unique
+    .map((url, position) => ({ url, score: productImageScore(url, pageUrl, position), position }))
+    .filter(candidate => candidate.score >= 0)
+    .sort((left, right) => right.score - left.score || left.position - right.position)
+    .map(candidate => candidate.url);
+}
+
+export function mergeFirecrawlImages(parsedImages, discoveredImages, pageUrl, { structuredOnly = false } = {}) {
+  const images = structuredOnly && parsedImages?.length
+    ? parsedImages
+    : [...(parsedImages || []), ...(structuredOnly ? [] : (discoveredImages || []))];
+  return rankProductImages(images, pageUrl);
 }
 
 function isPrivateAddress(raw) {
@@ -164,6 +233,33 @@ export function sniffImageType(buffer) {
   if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) return 'image/png';
   if (buffer.length >= 3 && buffer[0] === 255 && buffer[1] === 216 && buffer[2] === 255) return 'image/jpeg';
   if (buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') return 'image/webp';
+  return null;
+}
+
+export function imageDimensions(buffer, type = sniffImageType(buffer)) {
+  if (type === 'image/png' && buffer.length >= 24) {
+    return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+  }
+  if (type === 'image/jpeg') {
+    for (let offset = 2; offset + 9 < buffer.length;) {
+      if (buffer[offset] !== 0xff) { offset += 1; continue; }
+      const marker = buffer[offset + 1];
+      if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)) {
+        return { width: buffer.readUInt16BE(offset + 7), height: buffer.readUInt16BE(offset + 5) };
+      }
+      if (marker === 0xd8 || marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7)) { offset += 2; continue; }
+      if (offset + 4 > buffer.length) break;
+      const size = buffer.readUInt16BE(offset + 2);
+      if (size < 2) break;
+      offset += size + 2;
+    }
+  }
+  if (type === 'image/webp' && buffer.length >= 30 && buffer.toString('ascii', 12, 16) === 'VP8X') {
+    return {
+      width: 1 + buffer.readUIntLE(24, 3),
+      height: 1 + buffer.readUIntLE(27, 3)
+    };
+  }
   return null;
 }
 
@@ -391,7 +487,11 @@ async function binaryResponse(response, source) {
   if (!buffer.length || buffer.length > MAX_SOURCE) throw new Error('IMAGE_TOO_LARGE');
   const type = sniffImageType(buffer);
   if (!type) throw new Error('UNSUPPORTED_IMAGE');
-  return { buffer, type, source };
+  const dimensions = imageDimensions(buffer, type);
+  if (!dimensions || dimensions.width < 120 || dimensions.height < 120 || dimensions.width * dimensions.height > 50_000_000) {
+    throw new Error('INVALID_IMAGE_DIMENSIONS');
+  }
+  return { buffer, type, source, ...dimensions };
 }
 
 async function firecrawl(url, options = {}) {
@@ -408,7 +508,13 @@ async function firecrawl(url, options = {}) {
   const parsed = options.shopifyJson
     ? parseShopifyProductJson(html, payload.data?.metadata?.url || url)
     : parseProductHtml(html, payload.data?.metadata?.url || url);
-  const images = [...parsed.images, ...(payload.data?.images || []).map(value => absoluteUrl(value, url)).filter(Boolean)];
+  const pageUrl = payload.data?.metadata?.url || url;
+  const images = mergeFirecrawlImages(
+    parsed.images,
+    payload.data?.images || [],
+    pageUrl,
+    { structuredOnly: Boolean(options.shopifyJson) }
+  );
   return {
     title: parsed.title || payload.data?.metadata?.title || null,
     images: [...new Set(images)],
@@ -452,13 +558,24 @@ export async function fetchProduct(value) {
     }
     if (type === 'text/html') {
       const parsed = parseProductHtml((await page.text()).slice(0, MAX_HTML), page.url || url.href);
-      if (parsed.images.length) return fetchProductImage(parsed, page.url || url.href, 'direct');
+      parsed.images = rankProductImages(parsed.images, page.url || url.href);
+      if (parsed.images.length) return fetchProductImage(parsed, page.url || url.href, 'direct-metadata');
     }
   }
-  const jsonUrl = shopifyProductJsonUrl(url.href);
-  if (jsonUrl) {
+  for (const productApiUrl of shopifyProductApiUrls(url.href)) {
     try {
-      const parsed = await firecrawl(jsonUrl, { shopifyJson: true });
+      const direct = await safeFetch(productApiUrl, {
+        signal: AbortSignal.timeout(12000),
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PaletteIntake/1.0)', Accept: 'application/json,text/plain;q=0.9' }
+      });
+      if (direct.ok) {
+        const parsed = parseShopifyProductJson((await direct.text()).slice(0, MAX_HTML), productApiUrl);
+        parsed.images = rankProductImages(parsed.images, url.href);
+        if (parsed.images.length) return fetchProductImage(parsed, url.href, 'shopify-ajax');
+      }
+    } catch {}
+    try {
+      const parsed = await firecrawl(productApiUrl, { shopifyJson: true });
       if (parsed?.images.length) return fetchProductImage(parsed, url.href, parsed.method);
     } catch {}
   }

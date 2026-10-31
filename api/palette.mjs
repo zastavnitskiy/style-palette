@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { waitUntil } from '@vercel/functions';
-import { defaultWidth, inferCategory, readPalette, saveProductImage, updatePalette, validUserId } from './_palette-store.mjs';
+import { defaultWidth, inferCategory, readPalette, saveOriginalProductImage, saveProductImage, updatePalette, validUserId } from './_palette-store.mjs';
 import { fetchProduct, generate, resolveProductQuery } from './items.mjs';
 
 export const config = { maxDuration: 180 };
@@ -74,8 +74,16 @@ async function processPending(userId, itemId, input) {
   try {
     const url = await resolveProductQuery(input);
     const { item, product } = await fetchProduct(url);
-    const generated = await generate(item);
-    const stored = await saveProductImage(userId, itemId, generated.buffer);
+    const original = await saveOriginalProductImage(userId, itemId, item.buffer, item.type);
+    let stored = original;
+    let processingError = null;
+    try {
+      const generated = await generate(item);
+      stored = await saveProductImage(userId, itemId, generated.buffer);
+    } catch (error) {
+      processingError = error?.message || 'IMAGE_PROCESSING_FAILED';
+      console.error('Palette cutout generation failed; using original', processingError);
+    }
     await updatePalette(userId, state => {
       const target = state.items.find(entry => entry.id === itemId);
       if (!target) return state;
@@ -85,6 +93,10 @@ async function processPending(userId, itemId, input) {
         entry.title = (product?.title || input).toUpperCase();
         entry.source_url = product?.page_url || url;
         entry.image_url = stored.url;
+        entry.original_image_url = original.url;
+        entry.source_image_url = product?.image_url || null;
+        entry.fetch_method = product?.fetch_method || null;
+        entry.processing_error = processingError;
         entry.price = entry.price || product?.price || null;
         entry.currency = entry.currency || product?.currency || null;
         entry.category = inferCategory(product?.category || entry.title);

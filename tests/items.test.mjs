@@ -6,6 +6,11 @@ import handler, {
   hasTransparency,
   parseProductHtml,
   parseShopifyProductJson,
+  imageDimensions,
+  mergeFirecrawlImages,
+  productImageScore,
+  rankProductImages,
+  shopifyProductApiUrls,
   shopifyProductJsonUrl,
   sniffImageType
 } from '../api/items.mjs';
@@ -122,6 +127,26 @@ test('preserves locale prefixes for standard Shopify product URLs', () => {
   );
 });
 
+test('tries the documented Shopify Ajax endpoint before the legacy JSON endpoint', () => {
+  assert.deepEqual(
+    shopifyProductApiUrls('https://shop.example/en/products/weldon-coat?variant=123'),
+    ['https://shop.example/en/products/weldon-coat.js', 'https://shop.example/en/products/weldon-coat.json']
+  );
+});
+
+test('ranks the Octobre Cloudinary product asset above generic brand images', () => {
+  const page = 'https://www.octobre-editions.com/eu-en/product/pack-durham-socks/rust-beige-brown#size-tu';
+  const product = 'https://media.octobre-editions.com/image/upload/c_fill%2Cd_placeholder_dark.png%2Cfl_progressive%3Asemi%2Ch_816%2Cq_auto%3Abest%2Cw_582/gqnz11rqyctrm84pgagc.jpg';
+  const logo = 'https://media.octobre-editions.com/image/upload/w_1200/octobre-logo.png';
+  assert.deepEqual(rankProductImages([logo, product], page), [product]);
+  assert.ok(productImageScore(product, page) > productImageScore(logo, page));
+});
+
+test('does not promote page-wide Firecrawl images for an empty Shopify payload', () => {
+  const page = 'https://www.octobre-editions.com/products/pack-durham-socks.json';
+  assert.deepEqual(mergeFirecrawlImages([], ['https://media.octobre-editions.com/image/upload/octobre-logo.png'], page, { structuredOnly: true }), []);
+});
+
 test('parses Shopify product JSON returned as a browser preformatted document', () => {
   const json = JSON.stringify({ product: {
     title: 'Pack Durham Socks',
@@ -143,6 +168,13 @@ test('sniffs supported image formats from bytes', () => {
   assert.equal(sniffImageType(Buffer.from([255, 216, 255, 0])), 'image/jpeg');
   assert.equal(sniffImageType(Buffer.from('RIFF0000WEBP')), 'image/webp');
   assert.equal(sniffImageType(Buffer.from('not an image')), null);
+});
+
+test('reads PNG and JPEG dimensions from image bytes', () => {
+  const png = rgbaPng(255);
+  assert.deepEqual(imageDimensions(png, 'image/png'), { width: 1, height: 1 });
+  const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xc0, 0, 17, 8, 0, 3, 0, 4, 3, 1, 0, 0, 0, 0, 0, 0, 0, 0]);
+  assert.deepEqual(imageDimensions(jpeg, 'image/jpeg'), { width: 4, height: 3 });
 });
 
 test('requires an actually transparent PNG pixel', () => {

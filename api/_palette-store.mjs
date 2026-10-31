@@ -92,6 +92,15 @@ export async function saveProductImage(userId, itemId, buffer) {
   });
 }
 
+export async function saveOriginalProductImage(userId, itemId, buffer, contentType) {
+  const extensions = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+  const extension = extensions[contentType];
+  if (!extension) throw new Error('UNSUPPORTED_IMAGE');
+  return put(`palettes/${userId}/items/${itemId}-original.${extension}`, buffer, {
+    access: ACCESS, contentType, addRandomSuffix: true, cacheControlMaxAge: 31536000
+  });
+}
+
 export function defaultWidth(title = '') {
   const value = title.toLowerCase();
   if (/coat|jacket|blazer|sweater|jumper|shirt|cardigan/.test(value)) return .32;
