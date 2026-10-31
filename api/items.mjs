@@ -619,10 +619,10 @@ async function duckDuckGoImageProduct(url) {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PaletteIntake/1.0)', Accept: 'text/html' },
     signal: AbortSignal.timeout(12000)
   });
-  if (!searchPage.ok) return null;
+  if (!searchPage.ok) throw new Error(`OCTOBRE_SEARCH_PAGE_${searchPage.status}`);
   const html = await searchPage.text();
   const token = /\bvqd=["']?([\d-]+)/.exec(html)?.[1] || /\bvqd="([^"]+)/.exec(html)?.[1];
-  if (!token) return null;
+  if (!token) throw new Error('OCTOBRE_SEARCH_TOKEN_MISSING');
   const endpoint = new URL('https://duckduckgo.com/i.js');
   endpoint.searchParams.set('l', 'us-en');
   endpoint.searchParams.set('o', 'json');
@@ -633,10 +633,10 @@ async function duckDuckGoImageProduct(url) {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PaletteIntake/1.0)', Referer: 'https://duckduckgo.com/', Accept: 'application/json' },
     signal: AbortSignal.timeout(12000)
   });
-  if (!result.ok) return null;
+  if (!result.ok) throw new Error(`OCTOBRE_SEARCH_RESULTS_${result.status}`);
   const payload = await result.json().catch(() => null);
   const images = selectProductImageSearchResults(payload?.results, page.href);
-  if (!images.length) return null;
+  if (!images.length) throw new Error('OCTOBRE_SEARCH_NO_MATCH');
   const matchingResult = payload.results.find(candidate => candidate?.image === images[0]);
   return {
     title: String(matchingResult?.title || humanize(identity.handle)).split(/\s+-\s+/)[0].trim() || null,
@@ -688,7 +688,14 @@ async function openAiWebProduct(url) {
     signal: AbortSignal.timeout(60000)
   });
   const payload = await result.json().catch(() => null);
-  if (!result.ok || payload?.status !== 'completed') return null;
+  if (!result.ok) {
+    console.warn('OpenAI web product search unavailable', result.status, payload?.error?.code || 'unknown');
+    return null;
+  }
+  if (payload?.status !== 'completed') {
+    console.warn('OpenAI web product search incomplete', payload?.status || 'missing', payload?.incomplete_details?.reason || 'unknown');
+    return null;
+  }
   return parseOpenAiProductResponse(payload, url);
 }
 
@@ -759,7 +766,9 @@ export async function fetchProduct(value) {
   try {
     const parsed = await duckDuckGoImageProduct(url.href);
     if (parsed?.images.length) return fetchProductImage(parsed, url.href, parsed.method);
-  } catch {}
+  } catch (error) {
+    console.warn('Octobre image search unavailable', error?.message || 'unknown');
+  }
   let protectedFetchFailed = false;
   try {
     const parsed = await firecrawl(url.href);
