@@ -1,92 +1,26 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#f3f3ef" />
-  <meta name="description" content="A personal visual wardrobe." />
-  <title>Palette</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css" />
-</head>
-<body>
-  <header class="bar">
-    <a class="wordmark" href="/441294944" aria-label="Palette home">PALETTE</a>
-    <p class="owner">USER/<span data-user-id>—</span></p>
-    <p class="status"><i aria-hidden="true"></i> <span data-object-count>08</span> OBJECTS</p>
-  </header>
-
-  <main>
-    <section class="canvas" id="palette" aria-label="Draggable clothing palette">
-      <p class="coordinate north">WARDROBE INDEX / 2026</p>
-      <p class="coordinate east">DRAG OBJECTS</p>
-      <p class="coordinate south">PRIVATE COLLECTION</p>
-
-      <article class="object sweater" data-item-id="cobalt-knit" data-name="COBALT KNIT">
-        <img src="/assets/cobalt-knit.png" alt="Oversized cobalt blue knit sweater" draggable="false" />
-        <p><b>01</b> COBALT KNIT</p>
-        <button class="remove-object" type="button" aria-label="Remove Cobalt Knit">×</button>
-      </article>
-
-      <article class="object trousers" data-item-id="wide-trouser" data-name="WIDE TROUSER">
-        <img src="/assets/charcoal-trousers.png" alt="Charcoal wide-leg tailored trousers" draggable="false" />
-        <p><b>02</b> WIDE TROUSER</p>
-        <button class="remove-object" type="button" aria-label="Remove Wide Trouser">×</button>
-      </article>
-
-      <article class="object sneakers" data-item-id="sunny-suede" data-name="SUNNY SUEDE">
-        <img src="/assets/butter-sneakers.png" alt="Butter yellow suede sneakers" draggable="false" />
-        <p><b>03</b> SUNNY SUEDE</p>
-        <button class="remove-object" type="button" aria-label="Remove Sunny Suede">×</button>
-      </article>
-
-      <article class="object bag" data-item-id="cherry-gloss" data-name="CHERRY GLOSS">
-        <img src="/assets/cherry-bag.png" alt="Cherry red glossy shoulder bag" draggable="false" />
-        <p><b>04</b> CHERRY GLOSS</p>
-        <button class="remove-object" type="button" aria-label="Remove Cherry Gloss">×</button>
-      </article>
-
-      <article class="object socks" data-item-id="rooney-socks" data-name="ROONEY SOCKS">
-        <img src="/assets/rooney-socks.png?v=2" alt="Rooney recycled-wool socks in red, grey and blue stripes" draggable="false" />
-        <a class="object-label" href="https://www.octobre-editions.com/eu-en/product/rooney-socks/red-grey-blue" target="_blank" rel="noopener noreferrer" aria-label="View Rooney Socks at Octobre Editions"><b>05</b> ROONEY SOCKS ↗</a>
-        <button class="remove-object" type="button" aria-label="Remove Rooney Socks">×</button>
-      </article>
-
-      <article class="object michael" data-item-id="paraboot-michael" data-name="PARABOOT MICHAEL">
-        <img src="/assets/paraboot-michael.png" alt="Paraboot Michael derby shoe in dark brown Lisse Café leather" draggable="false" />
-        <a class="object-label" href="https://www.paraboot.com/en/men/derbies/michael-marche-ii-marron-lisse-cafe-2/" target="_blank" rel="noopener noreferrer" aria-label="View the Michael in Lisse Café at Paraboot"><b>06</b> PARABOOT MICHAEL ↗</a>
-        <button class="remove-object" type="button" aria-label="Remove Paraboot Michael">×</button>
-      </article>
-
-      <article class="object melor" data-item-id="melor-casual-pants" data-name="MELOR CAMOUFLAGE">
-        <img src="/assets/melor-casual-pants.png" alt="Melor loose cotton casual pants in beige, khaki and brown camouflage" draggable="false" />
-        <a class="object-label" href="https://www.octobre-editions.com/eu-en/product/melor-casual-pants/camouflage#size-xs" target="_blank" rel="noopener noreferrer" aria-label="View Melor Casual Pants in Camouflage, size XS at Octobre Editions"><b>07</b> MELOR CAMOUFLAGE ↗</a>
-        <button class="remove-object" type="button" aria-label="Remove Melor Camouflage">×</button>
-      </article>
-
-      <article class="object durham" data-item-id="durham-socks" data-name="DURHAM SOCKS">
-        <img src="/assets/durham-socks.png" alt="Pack of three Durham wool socks in mustard, khaki and twine" draggable="false" />
-        <a class="object-label" href="https://www.octobre-editions.com/eu-en/product/pack-durham-socks/mustard-khaki-twine#size-tu" target="_blank" rel="noopener noreferrer" aria-label="View Pack Durham Socks in Mustard, Khaki and Twine at Octobre Editions"><b>08</b> DURHAM SOCKS ↗</a>
-        <button class="remove-object" type="button" aria-label="Remove Durham Socks">×</button>
-      </article>
-
-      <button class="restore-items" id="restore-items" type="button" hidden>RESTORE <span data-hidden-count>0</span></button>
-      <div class="crosshair" aria-hidden="true"><span></span></div>
-    </section>
-  </main>
-
-  <footer class="rail">
-    <p>PERSONAL PALETTE <span>№001</span></p>
-    <button type="button" id="copy-api">API / <span>POST /api/items</span></button>
-    <p>UPDATED <time datetime="2026-09-27">27.09.26</time></p>
-  </footer>
-
-  <div class="toast" role="status" aria-live="polite">
-    <span data-toast-message>ENDPOINT COPIED</span>
-    <button type="button" id="undo-remove" hidden>UNDO</button>
-  </div>
-  <script src="/script.js"></script>
-</body>
-</html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#e7e7e2"><meta name="description" content="A personal visual wardrobe.">
+<title>Palette</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"><link rel="stylesheet" href="/styles.css">
+</head><body>
+<main class="palette" id="palette" aria-label="Personal clothing palette"><div class="scene" id="scene"><div class="loading">LOADING PALETTE…</div></div></main>
+<div class="controls" id="selection-controls" hidden>
+<button type="button" data-action="back" aria-label="Send to back" title="Send to back">⇊</button>
+<button type="button" data-action="down" aria-label="Move one layer down" title="Move down">↓</button>
+<button type="button" data-action="up" aria-label="Move one layer up" title="Move up">↑</button>
+<button type="button" data-action="front" aria-label="Bring to front" title="Bring to front">⇈</button>
+<button type="button" data-action="mirror" aria-label="Mirror item" title="Mirror">↔</button>
+<button type="button" data-action="copy" aria-label="Copy item" title="Copy item">⧉</button>
+<button type="button" data-action="remove" aria-label="Remove item" title="Remove">×</button>
+</div>
+<a class="list-button" id="list-button" href="/441294944/list" aria-label="Open wardrobe list" title="Wardrobe list">☷</a>
+<button class="add-button" id="add-button" type="button" aria-label="Add product">+</button>
+<form class="intake" id="intake" hidden>
+<header><label for="product-input">LINK OR PRODUCT NAME</label><button class="intake-close" id="intake-close" type="button" aria-label="Close add product">×</button></header>
+<div class="intake-fields"><input id="product-input" maxlength="500" autocomplete="off" placeholder="Paste a link or type a product" required><button type="submit">ADD</button></div>
+<div class="intake-meta"><label for="price-input">PRICE <span>OPTIONAL</span></label><label for="currency-input">CURRENCY</label><input id="price-input" maxlength="32" inputmode="decimal" autocomplete="off" placeholder="0.00"><input id="currency-input" maxlength="8" autocomplete="off" value="EUR" aria-label="Price currency"></div>
+<p>It appears immediately and finishes processing in the background.</p></form>
+<div class="toast" id="toast" role="status" aria-live="polite"></div><script type="module" src="/script.js"></script>
+</body></html>
