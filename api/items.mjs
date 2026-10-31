@@ -100,6 +100,68 @@ export function shopifyProductApiUrls(value) {
   return [jsonUrl.replace(/\.json$/i, '.js'), jsonUrl];
 }
 
+function normalizedTokens(value) {
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(token => token.length >= 3);
+}
+
+export function productUrlIdentity(value) {
+  try {
+    const url = new URL(value);
+    const parts = url.pathname.split('/').filter(Boolean);
+    const productIndex = parts.indexOf('product');
+    if (productIndex < 0) return null;
+    const productParts = parts.slice(productIndex + 1);
+    if (productParts[0] === 'octobre-editions') productParts.shift();
+    if (productParts.length < 2) return null;
+    return { handle: productParts[0], variant: productParts[1] };
+  } catch { return null; }
+}
+
+export function selectProductImageSearchResults(results, pageUrl) {
+  const target = productUrlIdentity(pageUrl);
+  if (!target) return [];
+  const stem = token => token.length > 4 && token.endsWith('s') ? token.slice(0, -1) : token;
+  const genericProductTokens = new Set(['shirt', 'sweater', 'sock']);
+  const variantModifiers = new Set(['heather', 'mottled', 'melange', 'speckled']);
+  const handleTokens = normalizedTokens(target.handle).map(stem).filter(token => !genericProductTokens.has(token));
+  const variantTokens = normalizedTokens(target.variant);
+  const coreVariantTokens = variantTokens.filter(token => !variantModifiers.has(token));
+  const trustedImageHosts = new Set(['media.octobre-editions.com', 'media.sezane.com', 'i.pinimg.com']);
+  return (Array.isArray(results) ? results : [])
+    .map((result, position) => {
+      let image;
+      try { image = new URL(result?.image); } catch { return null; }
+      if (!trustedImageHosts.has(image.hostname)) return null;
+      const sourceIdentity = productUrlIdentity(result?.url);
+      const exactIdentity = sourceIdentity?.handle === target.handle && sourceIdentity?.variant === target.variant;
+      const titleTokens = new Set(normalizedTokens(result?.title));
+      const handleMatch = handleTokens.every(token => titleTokens.has(token));
+      const variantMatch = variantTokens.every(token => titleTokens.has(token));
+      const sourceHandleTokens = sourceIdentity ? normalizedTokens(sourceIdentity.handle).map(stem).filter(token => !genericProductTokens.has(token)) : [];
+      const equivalentHandle = sourceHandleTokens.length === handleTokens.length && handleTokens.every(token => sourceHandleTokens.includes(token));
+      const sourceVariantTokens = sourceIdentity ? normalizedTokens(sourceIdentity.variant) : [];
+      const safeVariantAlias = variantTokens.every(token => coreVariantTokens.includes(token) || variantModifiers.has(token)) &&
+        coreVariantTokens.length > 0 && coreVariantTokens.every(token => titleTokens.has(token) || sourceVariantTokens.includes(token));
+      const aliasIdentity = equivalentHandle && safeVariantAlias;
+      if (!exactIdentity && !aliasIdentity && (!handleMatch || !variantMatch)) return null;
+      const width = Number(result?.width || 0);
+      const height = Number(result?.height || 0);
+      if ((width && width < 300) || (height && height < 300)) return null;
+      const score = (exactIdentity ? 100 : 0) + (aliasIdentity ? 45 : 0) + (handleMatch ? 30 : 0) + (variantMatch ? 30 : 0) +
+        (image.hostname.endsWith('octobre-editions.com') || image.hostname === 'media.sezane.com' ? 25 : 5) +
+        (width >= 500 && height >= 500 ? 15 : 0) - position / 100;
+      return { url: image.href, score };
+    })
+    .filter(Boolean)
+    .sort((left, right) => right.score - left.score)
+    .map(candidate => candidate.url);
+}
+
 export function parseShopifyProductJson(value, baseUrl) {
   const raw = String(value || '').trim();
   const pre = /<pre[^>]*>([\s\S]*?)<\/pre>/i.exec(raw)?.[1];
@@ -546,6 +608,46 @@ async function firecrawl(url, options = {}) {
   };
 }
 
+async function duckDuckGoImageProduct(url) {
+  const page = new URL(url);
+  if (!page.hostname.endsWith('octobre-editions.com')) return null;
+  const identity = productUrlIdentity(page.href);
+  if (!identity) return null;
+  const humanize = value => value.replace(/[-_]+/g, ' ');
+  const query = `${humanize(identity.handle)} ${humanize(identity.variant)} Octobre Editions`;
+  const searchPage = await fetch(`https://duckduckgo.com/?q=${encodeURIComponent(query)}&iax=images&ia=images`, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PaletteIntake/1.0)', Accept: 'text/html' },
+    signal: AbortSignal.timeout(12000)
+  });
+  if (!searchPage.ok) return null;
+  const html = await searchPage.text();
+  const token = /\bvqd=["']?([\d-]+)/.exec(html)?.[1] || /\bvqd="([^"]+)/.exec(html)?.[1];
+  if (!token) return null;
+  const endpoint = new URL('https://duckduckgo.com/i.js');
+  endpoint.searchParams.set('l', 'us-en');
+  endpoint.searchParams.set('o', 'json');
+  endpoint.searchParams.set('q', query);
+  endpoint.searchParams.set('vqd', token);
+  endpoint.searchParams.set('f', ',,,,,');
+  const result = await fetch(endpoint, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PaletteIntake/1.0)', Referer: 'https://duckduckgo.com/', Accept: 'application/json' },
+    signal: AbortSignal.timeout(12000)
+  });
+  if (!result.ok) return null;
+  const payload = await result.json().catch(() => null);
+  const images = selectProductImageSearchResults(payload?.results, page.href);
+  if (!images.length) return null;
+  const matchingResult = payload.results.find(candidate => candidate?.image === images[0]);
+  return {
+    title: String(matchingResult?.title || humanize(identity.handle)).split(/\s+-\s+/)[0].trim() || null,
+    images: rankProductImages(images, page.href),
+    price: null,
+    currency: null,
+    category: null,
+    method: 'octobre-image-search'
+  };
+}
+
 async function openAiWebProduct(url) {
   if (!process.env.OPENAI_API_KEY) return null;
   const result = await fetch('https://api.openai.com/v1/responses', {
@@ -654,6 +756,10 @@ export async function fetchProduct(value) {
       if (parsed?.images.length) return fetchProductImage(parsed, url.href, parsed.method);
     } catch {}
   }
+  try {
+    const parsed = await duckDuckGoImageProduct(url.href);
+    if (parsed?.images.length) return fetchProductImage(parsed, url.href, parsed.method);
+  } catch {}
   let protectedFetchFailed = false;
   try {
     const parsed = await firecrawl(url.href);

@@ -10,7 +10,9 @@ import handler, {
   imageDimensions,
   mergeFirecrawlImages,
   productImageScore,
+  productUrlIdentity,
   rankProductImages,
+  selectProductImageSearchResults,
   shopifyProductApiUrls,
   shopifyProductJsonUrl,
   sniffImageType
@@ -134,6 +136,43 @@ test('tries the documented Shopify Ajax endpoint before the legacy JSON endpoint
     shopifyProductApiUrls('https://shop.example/en/products/weldon-coat?variant=123'),
     ['https://shop.example/en/products/weldon-coat.js', 'https://shop.example/en/products/weldon-coat.json']
   );
+});
+
+test('normalizes Octobre and mirrored Sezane product URL identities', () => {
+  assert.deepEqual(productUrlIdentity('https://www.octobre-editions.com/eu-en/product/nils-sweater/burgundy'), {
+    handle: 'nils-sweater', variant: 'burgundy'
+  });
+  assert.deepEqual(productUrlIdentity('https://www.sezane.com/us-en/product/octobre-editions/nils-sweater/burgundy'), {
+    handle: 'nils-sweater', variant: 'burgundy'
+  });
+});
+
+test('selects exact Octobre image-search matches and rejects wrong variants', () => {
+  const page = 'https://www.octobre-editions.com/eu-en/product/nils-sweater/burgundy';
+  const exact = 'https://media.sezane.com/image/upload/c_fill,h_816,w_582/nils.jpg';
+  const results = [
+    { title: 'Nils Sweater - Green', url: 'https://www.octobre-editions.com/eu-en/product/nils-sweater/green', image: 'https://media.octobre-editions.com/image/upload/c_fill,h_816,w_582/green.jpg', width: 582, height: 816 },
+    { title: 'Nils Sweater - Burgundy - Merino Wool', url: 'https://www.sezane.com/us-en/product/octobre-editions/nils-sweater/burgundy', image: exact, width: 582, height: 816 }
+  ];
+  assert.deepEqual(selectProductImageSearchResults(results, page), [exact]);
+});
+
+test('allows a strongly matching indexed image when its source page is a mirror', () => {
+  const page = 'https://www.octobre-editions.com/eu-en/product/oliver-sweater/ecru';
+  const image = 'https://i.pinimg.com/736x/a8/20/6e/oliver.jpg';
+  assert.deepEqual(selectProductImageSearchResults([
+    { title: 'Pull Oliver - Écru - Laine - Octobre Éditions', url: 'https://www.pinterest.com/pin/123', image, width: 582, height: 816 }
+  ], page), [image]);
+});
+
+test('accepts a same-product color alias when only a safe texture modifier changed', () => {
+  const page = 'https://www.octobre-editions.com/eu-en/product/moreno-sweater/heather-brown';
+  const brown = 'https://media.octobre-editions.com/image/upload/c_fill,h_816,w_582/moreno-brown.jpg';
+  const green = 'https://media.octobre-editions.com/image/upload/c_fill,h_816,w_582/moreno-green.jpg';
+  assert.deepEqual(selectProductImageSearchResults([
+    { title: 'Moreno Sweaters - Green - Wool', url: 'https://www.octobre-editions.com/us-en/product/moreno-sweaters/green', image: green, width: 582, height: 816 },
+    { title: 'Moreno Sweaters - Brown - Wool', url: 'https://www.octobre-editions.com/us-en/product/moreno-sweaters/brown', image: brown, width: 582, height: 816 }
+  ], page), [brown]);
 });
 
 test('ranks the Octobre Cloudinary product asset above generic brand images', () => {

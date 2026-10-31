@@ -4,7 +4,8 @@
   "description": "A user-scoped visual wardrobe deployed on Vercel.",
   "private": true,
   "scripts": {
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "benchmark:octobre": "node scripts/octobre-benchmark.mjs"
   },
   "repository": {
     "type": "git",
