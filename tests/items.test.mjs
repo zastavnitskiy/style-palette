@@ -15,6 +15,7 @@ import handler, {
   shopifyProductJsonUrl,
   sniffImageType
 } from '../api/items.mjs';
+import { lookupProductCatalog } from '../api/_product-catalog.mjs';
 
 function rgbaPng(alpha) {
   const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
@@ -141,6 +142,15 @@ test('ranks the Octobre Cloudinary product asset above generic brand images', ()
   const logo = 'https://media.octobre-editions.com/image/upload/w_1200/octobre-logo.png';
   assert.deepEqual(rankProductImages([logo, product], page), [product]);
   assert.ok(productImageScore(product, page) > productImageScore(logo, page));
+});
+
+test('finds the supplied Octobre variant in the merchant catalog regardless of fragment', () => {
+  const product = lookupProductCatalog('https://www.octobre-editions.com/eu-en/product/pack-durham-socks/rust-beige-brown#size-tu');
+  assert.equal(product.title, 'Pack Durham Socks');
+  assert.equal(product.price, '45');
+  assert.equal(product.currency, 'EUR');
+  assert.equal(product.color, 'Rust / Beige / Brown');
+  assert.match(product.images[0], /^https:\/\/media\.octobre-editions\.com\/image\/upload\//);
 });
 
 test('does not promote page-wide Firecrawl images for an empty Shopify payload', () => {

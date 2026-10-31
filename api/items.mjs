@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import dns from 'node:dns/promises';
 import net from 'node:net';
 import { deflateSync, inflateSync } from 'node:zlib';
+import { lookupProductCatalog } from './_product-catalog.mjs';
 
 export const config = { maxDuration: 180 };
 const MAX_SOURCE = 8 * 1024 * 1024;
@@ -599,7 +600,12 @@ async function fetchProductImage(parsed, pageUrl, method) {
       });
       if (!response.ok) continue;
       const item = await binaryResponse(response, pageUrl);
-      return { item, product: { title: parsed.title || null, page_url: pageUrl, image_url: imageUrl, price: parsed.price || null, currency: parsed.currency || null, category: parsed.category || null, fetch_method: method } };
+      return { item, product: {
+        title: parsed.title || null, page_url: pageUrl, image_url: imageUrl,
+        price: parsed.price || null, currency: parsed.currency || null, category: parsed.category || null,
+        color: parsed.color || null, size: parsed.size || null, material: parsed.material || null,
+        contents: parsed.contents || null, fetch_method: method
+      } };
     } catch (error) { lastError = error; }
   }
   throw lastError || new Error('PRODUCT_IMAGE_NOT_FOUND');
@@ -607,6 +613,11 @@ async function fetchProductImage(parsed, pageUrl, method) {
 
 export async function fetchProduct(value) {
   const url = await assertPublicUrl(value);
+  const catalogProduct = lookupProductCatalog(url.href);
+  if (catalogProduct) {
+    catalogProduct.images = rankProductImages(catalogProduct.images, url.href);
+    return fetchProductImage(catalogProduct, url.href, 'merchant-catalog');
+  }
   let page;
   try {
     page = await safeFetch(url.href, {

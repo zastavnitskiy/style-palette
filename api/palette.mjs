@@ -97,6 +97,10 @@ async function processPending(userId, itemId, input) {
         entry.source_image_url = product?.image_url || null;
         entry.fetch_method = product?.fetch_method || null;
         entry.processing_error = processingError;
+        entry.color = product?.color || null;
+        entry.size = product?.size || null;
+        entry.material = product?.material || null;
+        entry.contents = product?.contents || null;
         entry.price = entry.price || product?.price || null;
         entry.currency = entry.currency || product?.currency || null;
         entry.category = inferCategory(product?.category || entry.title);
