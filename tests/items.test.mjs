@@ -5,6 +5,7 @@ import handler, {
   cleanStickerPng,
   hasTransparency,
   parseProductHtml,
+  parseOpenAiProductResponse,
   parseShopifyProductJson,
   imageDimensions,
   mergeFirecrawlImages,
@@ -145,6 +146,18 @@ test('ranks the Octobre Cloudinary product asset above generic brand images', ()
 test('does not promote page-wide Firecrawl images for an empty Shopify payload', () => {
   const page = 'https://www.octobre-editions.com/products/pack-durham-socks.json';
   assert.deepEqual(mergeFirecrawlImages([], ['https://media.octobre-editions.com/image/upload/octobre-logo.png'], page, { structuredOnly: true }), []);
+});
+
+test('parses and ranks structured web-search product results', () => {
+  const page = 'https://www.octobre-editions.com/eu-en/product/pack-durham-socks/rust-beige-brown#size-tu';
+  const product = 'https://media.octobre-editions.com/image/upload/c_fill%2Ch_816%2Cw_582/gqnz11rqyctrm84pgagc.jpg';
+  const payload = { status: 'completed', output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify({
+    title: 'Pack Durham Socks', images: ['https://media.octobre-editions.com/image/upload/octobre-logo.png', product],
+    price: '45', currency: 'eur', category: 'Socks'
+  }) }] }] };
+  assert.deepEqual(parseOpenAiProductResponse(payload, page), {
+    title: 'Pack Durham Socks', images: [product], price: '45', currency: 'EUR', category: 'Socks', method: 'openai-web-search'
+  });
 });
 
 test('parses Shopify product JSON returned as a browser preformatted document', () => {

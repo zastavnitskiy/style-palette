@@ -10,6 +10,7 @@ const MAX_HTML = 2 * 1024 * 1024;
 const MAX_OUTPUT = 3 * 1024 * 1024;
 const IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2.5-sunburst';
+const SEARCH_MODEL = process.env.OPENAI_SEARCH_MODEL || 'gpt-5.5';
 const PROMPT = 'Extract the single fashion item shown in the reference image. Create a faithful premium e-commerce cutout of that exact item, preserving its shape, color, material, pattern, proportions, and details. Show the complete item centered at a natural product-photo angle. Add a smooth thick white sticker outline around the silhouette. The area outside that outline must be genuinely transparent. No person, body part, hanger, mannequin, extra object, text, watermark, frame, floor, backdrop, checkerboard, or solid background.';
 
 function send(response, status, payload) {
@@ -194,6 +195,25 @@ export function mergeFirecrawlImages(parsedImages, discoveredImages, pageUrl, { 
     ? parsedImages
     : [...(parsedImages || []), ...(structuredOnly ? [] : (discoveredImages || []))];
   return rankProductImages(images, pageUrl);
+}
+
+export function parseOpenAiProductResponse(payload, pageUrl) {
+  const text = payload?.output
+    ?.flatMap(item => item?.type === 'message' ? (item.content || []) : [])
+    ?.find(item => item?.type === 'output_text')?.text;
+  if (!text) return null;
+  let parsed;
+  try { parsed = JSON.parse(text); } catch { return null; }
+  const images = rankProductImages(Array.isArray(parsed.images) ? parsed.images : [], pageUrl);
+  if (!images.length) return null;
+  return {
+    title: String(parsed.title || '').trim() || null,
+    images,
+    price: parsed.price === null || parsed.price === undefined || parsed.price === '' ? null : String(parsed.price),
+    currency: parsed.currency ? String(parsed.currency).toUpperCase() : null,
+    category: String(parsed.category || '').trim() || null,
+    method: 'openai-web-search'
+  };
 }
 
 function isPrivateAddress(raw) {
@@ -525,6 +545,50 @@ async function firecrawl(url, options = {}) {
   };
 }
 
+async function openAiWebProduct(url) {
+  if (!process.env.OPENAI_API_KEY) return null;
+  const result = await fetch('https://api.openai.com/v1/responses', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: SEARCH_MODEL,
+      tools: [{ type: 'web_search', search_context_size: 'low' }],
+      tool_choice: 'required',
+      input: [
+        {
+          role: 'system',
+          content: 'Find public product metadata for the exact URL and selected color variant. Return direct full-size product image URLs only. Exclude logos, icons, banners, social previews, placeholders, and unrelated products. Do not invent URLs.'
+        },
+        { role: 'user', content: `Product URL: ${url}` }
+      ],
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'product_import',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              title: { type: ['string', 'null'] },
+              images: { type: 'array', items: { type: 'string' }, maxItems: 12 },
+              price: { type: ['string', 'null'] },
+              currency: { type: ['string', 'null'] },
+              category: { type: ['string', 'null'] }
+            },
+            required: ['title', 'images', 'price', 'currency', 'category'],
+            additionalProperties: false
+          }
+        }
+      },
+      max_output_tokens: 1200
+    }),
+    signal: AbortSignal.timeout(60000)
+  });
+  const payload = await result.json().catch(() => null);
+  if (!result.ok || payload?.status !== 'completed') return null;
+  return parseOpenAiProductResponse(payload, url);
+}
+
 async function fetchProductImage(parsed, pageUrl, method) {
   let lastError;
   for (const imageUrl of parsed.images.slice(0, 8)) {
@@ -579,9 +643,19 @@ export async function fetchProduct(value) {
       if (parsed?.images.length) return fetchProductImage(parsed, url.href, parsed.method);
     } catch {}
   }
-  const parsed = await firecrawl(url.href);
-  if (parsed?.images.length) return fetchProductImage(parsed, url.href, parsed.method);
-  throw new Error(process.env.FIRECRAWL_API_KEY ? 'PRODUCT_IMAGE_NOT_FOUND' : 'PROTECTED_PAGE_REQUIRES_FIRECRAWL');
+  let protectedFetchFailed = false;
+  try {
+    const parsed = await firecrawl(url.href);
+    if (parsed?.images.length) return fetchProductImage(parsed, url.href, parsed.method);
+  } catch (error) {
+    protectedFetchFailed = error?.message === 'PROTECTED_PAGE_FETCH_FAILED';
+  }
+  try {
+    const parsed = await openAiWebProduct(url.href);
+    if (parsed?.images.length) return fetchProductImage(parsed, url.href, parsed.method);
+  } catch {}
+  if (!process.env.FIRECRAWL_API_KEY && !process.env.OPENAI_API_KEY) throw new Error('PROTECTED_PAGE_REQUIRES_PROVIDER');
+  throw new Error(protectedFetchFailed ? 'PROTECTED_PAGE_FETCH_FAILED' : 'PRODUCT_IMAGE_NOT_FOUND');
 }
 
 function photoFromDataUrl(value) {
