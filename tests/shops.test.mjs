@@ -27,7 +27,8 @@ test('merges separately added shops with shops discovered from products', () => 
     items: [
       { id: 'a', catalog_id: 'socks', source_url: 'https://www.octobre-editions.com/eu-en/product/socks', status: 'ready', image_url: '/socks.png' },
       { id: 'b', catalog_id: 'socks', source_url: 'https://www.octobre-editions.com/eu-en/product/socks', status: 'ready', image_url: '/socks.png' },
-      { id: 'c', catalog_id: 'shoes', input: 'https://www.paraboot.com/en/shoes/michael', status: 'failed' }
+      { id: 'c', catalog_id: 'shoes', input: 'https://www.paraboot.com/en/shoes/michael', status: 'failed' },
+      { id: 'd', catalog_id: 'search-ad', source_url: 'https://www.google.com/aclk?adurl=', status: 'ready' }
     ]
   });
   assert.deepEqual(shops.map(shop => [shop.name, shop.product_count, shop.manual]), [

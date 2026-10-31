@@ -452,7 +452,7 @@ export async function fetchProduct(value) {
     }
     if (type === 'text/html') {
       const parsed = parseProductHtml((await page.text()).slice(0, MAX_HTML), page.url || url.href);
-      if (parsed.images.length) return fetchProductImage(parsed, url.href, 'direct');
+      if (parsed.images.length) return fetchProductImage(parsed, page.url || url.href, 'direct');
     }
   }
   const jsonUrl = shopifyProductJsonUrl(url.href);

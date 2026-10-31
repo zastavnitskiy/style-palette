@@ -16,9 +16,13 @@ export function shopNameFromDomain(domain) {
 }
 
 function productSource(item) {
+  const nonRetailer = /^(?:google\.|bing\.|yahoo\.|duckduckgo\.|facebook\.|instagram\.|pinterest\.)/i;
   for (const value of [item?.source_url, item?.input]) {
     try {
-      if (value) return normalizeShopUrl(value);
+      if (value) {
+        const shop = normalizeShopUrl(value);
+        if (!nonRetailer.test(shop.domain)) return shop;
+      }
     } catch {}
   }
   return null;
