@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { defaultWidth, inferCategory, initialPalette, normalizePalette, validUserId } from '../api/_palette-store.mjs';
 import { applyLayerOrder, applyLayerPosition, displayTitle, intakeMetadata, prepareCatalogRefetch, removeCatalogProduct, sameOrigin } from '../api/palette.mjs';
-import { uniqueProducts } from '../catalog.mjs';
+import { productGroupKey, uniqueProducts } from '../catalog.mjs';
 
 test('bootstraps the eight existing palette items with server transforms', () => {
   const state = initialPalette('441294944');
@@ -36,6 +36,17 @@ test('deduplicates canvas copies in the wardrobe list', () => {
     { id: 'coat', catalog_id: 'coat', title: 'Coat', status: 'ready' }
   ]);
   assert.deepEqual(products.map(item => item.id), ['coat', 'jeans-b']);
+  assert.deepEqual(products.map(item => item.usage_count), [1, 2]);
+});
+
+test('groups separate imports by merchant product id and counts every use', () => {
+  const products = uniqueProducts([
+    { id: 'first', catalog_id: 'first', product_id: 'E482858-000', source_url: 'https://www.uniqlo.com/nl/en/products/E482858-000/00', title: 'Jeans', status: 'ready' },
+    { id: 'second', catalog_id: 'second', product_id: 'E482858-000', source_url: 'https://uniqlo.com/nl/en/products/E482858-000/00?color=09', title: 'Jeans', status: 'ready' },
+    { id: 'other', catalog_id: 'other', product_id: 'E462197-000', source_url: 'https://www.uniqlo.com/nl/en/products/E462197-000/00', title: 'Trousers', status: 'ready' }
+  ]);
+  assert.equal(productGroupKey(products[0]), 'product:uniqlo.com:e482858-000');
+  assert.deepEqual(products.map(item => [item.title, item.usage_count]), [['Jeans', 2], ['Trousers', 1]]);
 });
 test('allows mutations from the palette origin without a private token', () => {
   assert.equal(sameOrigin({ headers: { origin: 'https://workspace-style.vercel.app', host: 'workspace-style.vercel.app' } }), true);
@@ -96,6 +107,21 @@ test('deletes a catalog product and all of its canvas copies', () => {
     { id: 'b', catalog_id: 'product' },
     { id: 'other', catalog_id: 'other' }
   ], 'a');
+  assert.equal(result.removed, 2);
+  assert.deepEqual(result.items.map(item => item.id), ['other']);
+});
+
+test('refetch and delete span duplicate catalog imports with the same product id', () => {
+  const items = [
+    { id: 'a', catalog_id: 'first', product_id: 'E482858-000', source_url: 'https://www.uniqlo.com/nl/en/products/E482858-000/00', image_url: '/old-a.png', status: 'ready' },
+    { id: 'b', catalog_id: 'second', product_id: 'E482858-000', source_url: 'https://uniqlo.com/nl/en/products/E482858-000/00', image_url: '/old-b.png', status: 'ready' },
+    { id: 'other', catalog_id: 'other', product_id: 'E462197-000', source_url: 'https://www.uniqlo.com/nl/en/products/E462197-000/00', status: 'ready' }
+  ];
+  prepareCatalogRefetch(items, 'a');
+  assert.equal(items[0].refreshing, true);
+  assert.equal(items[1].refreshing, true);
+  assert.equal(items[2].refreshing, undefined);
+  const result = removeCatalogProduct(items, 'b');
   assert.equal(result.removed, 2);
   assert.deepEqual(result.items.map(item => item.id), ['other']);
 });

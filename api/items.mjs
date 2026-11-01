@@ -77,7 +77,31 @@ export function parseProductHtml(html, baseUrl) {
   const price = rawPrice === null || rawPrice === undefined || rawPrice === '' ? null : String(rawPrice);
   const currency = offer?.priceCurrency ? String(offer.priceCurrency).toUpperCase() : null;
   const category = product?.category ? String(product.category).trim() : null;
-  return { title: title || null, images, price, currency, category };
+  const result = { title: title || null, images, price, currency, category };
+  if (product?.productID) result.product_id = String(product.productID);
+  return result;
+}
+
+export function parseUniqloProductHtml(html, pageUrl) {
+  let page;
+  try { page = new URL(pageUrl); } catch { return null; }
+  if (!(page.hostname === 'uniqlo.com' || page.hostname.endsWith('.uniqlo.com'))) return null;
+  const productId = /\/products\/(E\d+(?:-\d+)?)/i.exec(page.pathname)?.[1]?.toUpperCase();
+  const assetId = /^E(\d+)/.exec(productId || '')?.[1];
+  if (!productId || !assetId) return null;
+  const queryColor = page.searchParams.get('colorDisplayCode');
+  const escapedProductId = productId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const embeddedColor = new RegExp(`"${escapedProductId}"\\s*:\\s*\\{[^}]{0,500}"colorDisplayCode"\\s*:\\s*"(\\d{2,3})"`, 'i').exec(html)?.[1];
+  const colorCode = /^\d{2,3}$/.test(queryColor || '') ? queryColor : embeddedColor;
+  const parsed = parseProductHtml(html, page.href);
+  if (!colorCode) return { ...parsed, product_id: productId };
+  const standalone = `https://image.uniqlo.com/UQ/ST3/WesternCommon/imagesgoods/${assetId}/item/goods_${colorCode}_${assetId}_3x4.jpg`;
+  const regionalPattern = new RegExp(`https://image\\.uniqlo\\.com/UQ/ST3/eu/imagesgoods/${assetId}/item/eugoods_${colorCode}_${assetId}_3x4\\.jpg`, 'i');
+  const regional = regionalPattern.exec(html)?.[0] ||
+    `https://image.uniqlo.com/UQ/ST3/eu/imagesgoods/${assetId}/item/eugoods_${colorCode}_${assetId}_3x4.jpg`;
+  const images = [standalone, regional, ...parsed.images.filter(image => ![standalone, regional].includes(image))];
+  const colorName = new RegExp(`Colour:\\s*${colorCode}\\s+([^<]+)`, 'i').exec(html)?.[1]?.trim() || null;
+  return { ...parsed, images, product_id: productId, color: colorName };
 }
 
 export function shopifyProductJsonUrl(value) {
@@ -195,13 +219,15 @@ export function parseShopifyProductJson(value, baseUrl) {
   const variants = Array.isArray(product.variants) ? product.variants : [];
   const variant = variants.find(item => item?.available !== false) || variants[0] || null;
   const rawPrice = variant?.price ?? product.price ?? null;
-  return {
+  const result = {
     title: String(product.title || product.name || '').trim() || null,
     images,
     price: rawPrice === null || rawPrice === undefined || rawPrice === '' ? null : String(rawPrice),
     currency: product.currency ? String(product.currency).toUpperCase() : null,
     category: String(product.product_type || product.category || '').trim() || null
   };
+  if (product.id !== null && product.id !== undefined && product.id !== '') result.product_id = String(product.id);
+  return result;
 }
 
 function urlTokens(value) {
@@ -725,6 +751,7 @@ async function fetchProductImage(parsed, pageUrl, method) {
       const item = await binaryResponse(response, pageUrl);
       return { item, product: {
         title: parsed.title || null, page_url: pageUrl, image_url: imageUrl,
+        product_id: parsed.product_id || null,
         price: parsed.price || null, currency: parsed.currency || null, category: parsed.category || null,
         color: parsed.color || null, size: parsed.size || null, material: parsed.material || null,
         contents: parsed.contents || null, fetch_method: method
@@ -755,9 +782,11 @@ export async function fetchProduct(value) {
       return { item, product: { title: null, page_url: url.href, image_url: url.href, fetch_method: 'direct-image' } };
     }
     if (type === 'text/html') {
-      const parsed = parseProductHtml((await page.text()).slice(0, MAX_HTML), page.url || url.href);
+      const html = (await page.text()).slice(0, MAX_HTML);
+      const uniqlo = parseUniqloProductHtml(html, page.url || url.href);
+      const parsed = uniqlo || parseProductHtml(html, page.url || url.href);
       parsed.images = rankProductImages(parsed.images, page.url || url.href);
-      if (parsed.images.length) return fetchProductImage(parsed, page.url || url.href, 'direct-metadata');
+      if (parsed.images.length) return fetchProductImage(parsed, page.url || url.href, uniqlo ? 'uniqlo-structured' : 'direct-metadata');
     }
   }
   for (const productApiUrl of shopifyProductApiUrls(url.href)) {

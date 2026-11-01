@@ -6,6 +6,7 @@ import handler, {
   duckDuckGoSearchToken,
   hasTransparency,
   parseProductHtml,
+  parseUniqloProductHtml,
   parseOpenAiProductResponse,
   parseShopifyProductJson,
   imageDimensions,
@@ -116,6 +117,33 @@ test('extracts catalog price and currency from Product offers', () => {
     currency: 'EUR',
     category: 'Coats & Jackets'
   });
+});
+
+test('selects the standalone Uniqlo image for the requested color variant', () => {
+  const page = 'https://www.uniqlo.com/nl/en/products/E482858-000/00?colorDisplayCode=09&sizeDisplayCode=030';
+  const html = `
+    <meta property="og:title" content="Mens Selvedge Slim Straight Jeans | UNIQLO NL">
+    <meta property="og:image" content="https://image.uniqlo.com/UQ/ST3/eu/imagesgoods/482858/item/eugoods_69_482858_3x4.jpg">
+    <img src="https://image.uniqlo.com/UQ/ST3/eu/imagesgoods/482858/item/eugoods_09_482858_3x4.jpg">
+    <script>window.__PRELOADED_STATE__={"selection":{"E482858-000":{"colorDisplayCode":"09"}}}</script>`;
+  const parsed = parseUniqloProductHtml(html, page);
+  assert.equal(parsed.title, 'Mens Selvedge Slim Straight Jeans | UNIQLO NL');
+  assert.deepEqual(parsed.images.slice(0, 2), [
+    'https://image.uniqlo.com/UQ/ST3/WesternCommon/imagesgoods/482858/item/goods_09_482858_3x4.jpg',
+    'https://image.uniqlo.com/UQ/ST3/eu/imagesgoods/482858/item/eugoods_09_482858_3x4.jpg'
+  ]);
+  assert.ok(!parsed.images.slice(0, 2).some(image => image.includes('goods_69_')));
+});
+
+test('uses Uniqlo embedded selection when the shared URL omits color', () => {
+  const page = 'https://www.uniqlo.com/nl/en/products/E462197-000/00';
+  const html = `
+    <meta property="og:image" content="https://image.uniqlo.com/UQ/ST3/eu/imagesgoods/462197/item/eugoods_69_462197_3x4.jpg">
+    <script>window.__PRELOADED_STATE__={"selection":{"E462197-000":{"colorDisplayCode":"06"}}}</script>`;
+  assert.equal(
+    parseUniqloProductHtml(html, page).images[0],
+    'https://image.uniqlo.com/UQ/ST3/WesternCommon/imagesgoods/462197/item/goods_06_462197_3x4.jpg'
+  );
 });
 
 test('derives the Shopify JSON endpoint from an Octobre product URL', () => {
@@ -230,6 +258,15 @@ test('parses Shopify product JSON returned as a browser preformatted document', 
     currency: null,
     category: 'Socks'
   });
+});
+
+test('retains Shopify product ids for catalog grouping', () => {
+  const parsed = parseShopifyProductJson(JSON.stringify({
+    id: 482858,
+    title: 'Selvedge Jeans',
+    images: ['https://cdn.example/jeans.jpg']
+  }), 'https://shop.example/products/selvedge-jeans.js');
+  assert.equal(parsed.product_id, '482858');
 });
 
 test('sniffs supported image formats from bytes', () => {

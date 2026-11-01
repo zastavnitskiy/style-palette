@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { waitUntil } from '@vercel/functions';
 import { defaultWidth, inferCategory, readPalette, saveOriginalProductImage, saveProductImage, updatePalette, validUserId } from './_palette-store.mjs';
 import { fetchProduct, generate, resolveProductQuery } from './items.mjs';
+import { productGroupKey } from '../catalog.mjs';
 
 export const config = { maxDuration: 180 };
 
@@ -74,7 +75,8 @@ export function prepareCatalogRefetch(items, id) {
   const target = items.find(item => item.id === id);
   if (!target) throw new Error('ITEM_NOT_FOUND');
   const catalogId = target.catalog_id || target.id;
-  const related = items.filter(item => (item.catalog_id || item.id) === catalogId);
+  const groupKey = productGroupKey(target);
+  const related = items.filter(item => productGroupKey(item) === groupKey);
   const source = related.find(item => item.input) || related.find(item => item.source_url) || target;
   const input = String(source.input || source.source_url || '').trim();
   if (!input) throw new Error('PRODUCT_SOURCE_REQUIRED');
@@ -91,7 +93,8 @@ export function removeCatalogProduct(items, id) {
   const target = items.find(item => item.id === id);
   if (!target) throw new Error('ITEM_NOT_FOUND');
   const catalogId = target.catalog_id || target.id;
-  const remaining = items.filter(item => (item.catalog_id || item.id) !== catalogId);
+  const groupKey = productGroupKey(target);
+  const remaining = items.filter(item => productGroupKey(item) !== groupKey);
   return { items: remaining, removed: items.length - remaining.length, catalogId };
 }
 
@@ -112,8 +115,13 @@ async function processPending(userId, itemId, input) {
     await updatePalette(userId, state => {
       const target = state.items.find(entry => entry.id === itemId);
       if (!target) return state;
-      const catalogId = target.catalog_id || target.id;
-      for (const entry of state.items.filter(item => (item.catalog_id || item.id) === catalogId)) {
+      const currentGroupKey = productGroupKey(target);
+      const refreshedIdentity = product?.product_id ? productGroupKey({
+        product_id: product.product_id,
+        source_url: product.page_url || target.source_url || input
+      }) : null;
+      for (const entry of state.items.filter(item => productGroupKey(item) === currentGroupKey ||
+        (refreshedIdentity && productGroupKey(item) === refreshedIdentity))) {
         entry.status = 'ready';
         entry.refreshing = false;
         entry.refetch_error = null;
@@ -122,6 +130,7 @@ async function processPending(userId, itemId, input) {
         entry.image_url = stored.url;
         entry.original_image_url = original.url;
         entry.source_image_url = product?.image_url || null;
+        entry.product_id = product?.product_id || entry.product_id || null;
         entry.fetch_method = product?.fetch_method || null;
         entry.processing_error = processingError;
         entry.color = product?.color || null;
@@ -142,8 +151,8 @@ async function processPending(userId, itemId, input) {
     await updatePalette(userId, state => {
       const target = state.items.find(entry => entry.id === itemId);
       if (target) {
-        const catalogId = target.catalog_id || target.id;
-        for (const entry of state.items.filter(item => (item.catalog_id || item.id) === catalogId)) {
+        const groupKey = productGroupKey(target);
+        for (const entry of state.items.filter(item => productGroupKey(item) === groupKey)) {
           entry.refreshing = false;
           if (entry.image_url) {
             entry.status = 'ready';
@@ -226,9 +235,9 @@ export default async function handler(request, response) {
         const item = current.items.find(entry => entry.id === id);
         if (!item) throw new Error('ITEM_NOT_FOUND');
         if (body.catalog && typeof body.catalog === 'object') {
-          const catalogId = item.catalog_id || item.id;
+          const groupKey = productGroupKey(item);
           const allowedStatus = new Set(['owned', 'to_buy', 'other']);
-          for (const entry of current.items.filter(value => (value.catalog_id || value.id) === catalogId)) {
+          for (const entry of current.items.filter(value => productGroupKey(value) === groupKey)) {
             if ('category' in body.catalog) entry.category = String(body.catalog.category || 'other').slice(0, 48);
             if ('price' in body.catalog) entry.price = String(body.catalog.price || '').slice(0, 32) || null;
             if ('currency' in body.catalog) entry.currency = String(body.catalog.currency || '').toUpperCase().slice(0, 8) || null;
