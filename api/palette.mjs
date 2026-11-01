@@ -70,6 +70,31 @@ export function applyLayerPosition(items, id, position) {
   return items;
 }
 
+export function prepareCatalogRefetch(items, id) {
+  const target = items.find(item => item.id === id);
+  if (!target) throw new Error('ITEM_NOT_FOUND');
+  const catalogId = target.catalog_id || target.id;
+  const related = items.filter(item => (item.catalog_id || item.id) === catalogId);
+  const source = related.find(item => item.input) || related.find(item => item.source_url) || target;
+  const input = String(source.input || source.source_url || '').trim();
+  if (!input) throw new Error('PRODUCT_SOURCE_REQUIRED');
+  for (const item of related) {
+    item.refreshing = true;
+    item.refetch_error = null;
+    item.error = null;
+    if (!item.image_url) item.status = 'pending';
+  }
+  return { itemId: target.id, catalogId, input };
+}
+
+export function removeCatalogProduct(items, id) {
+  const target = items.find(item => item.id === id);
+  if (!target) throw new Error('ITEM_NOT_FOUND');
+  const catalogId = target.catalog_id || target.id;
+  const remaining = items.filter(item => (item.catalog_id || item.id) !== catalogId);
+  return { items: remaining, removed: items.length - remaining.length, catalogId };
+}
+
 async function processPending(userId, itemId, input) {
   try {
     const url = await resolveProductQuery(input);
@@ -90,6 +115,8 @@ async function processPending(userId, itemId, input) {
       const catalogId = target.catalog_id || target.id;
       for (const entry of state.items.filter(item => (item.catalog_id || item.id) === catalogId)) {
         entry.status = 'ready';
+        entry.refreshing = false;
+        entry.refetch_error = null;
         entry.title = (product?.title || input).toUpperCase();
         entry.source_url = product?.page_url || url;
         entry.image_url = stored.url;
@@ -117,8 +144,14 @@ async function processPending(userId, itemId, input) {
       if (target) {
         const catalogId = target.catalog_id || target.id;
         for (const entry of state.items.filter(item => (item.catalog_id || item.id) === catalogId)) {
-          entry.status = 'failed';
-          entry.error = error?.message || 'PROCESSING_FAILED';
+          entry.refreshing = false;
+          if (entry.image_url) {
+            entry.status = 'ready';
+            entry.refetch_error = error?.message || 'PROCESSING_FAILED';
+          } else {
+            entry.status = 'failed';
+            entry.error = error?.message || 'PROCESSING_FAILED';
+          }
         }
       }
       return state;
@@ -145,6 +178,15 @@ export default async function handler(request, response) {
   try {
     if (request.method === 'POST') {
       const body = bodyOf(request);
+      if (body.refetch_id) {
+        let task;
+        const state = await updatePalette(userId, current => {
+          task = prepareCatalogRefetch(current.items, String(body.refetch_id));
+          return current;
+        });
+        waitUntil(processPending(userId, task.itemId, task.input));
+        return send(response, 202, { item: state.items.find(item => item.id === task.itemId) });
+      }
       if (body.copy_id) {
         const state = await updatePalette(userId, current => {
           const source = current.items.find(item => item.id === String(body.copy_id));
@@ -209,18 +251,26 @@ export default async function handler(request, response) {
     if (request.method === 'DELETE') {
       const body = bodyOf(request);
       const id = String(body.id || '');
+      let removed = 0;
       const state = await updatePalette(userId, current => {
+        if (body.catalog) {
+          const result = removeCatalogProduct(current.items, id);
+          current.items = result.items;
+          removed = result.removed;
+          return current;
+        }
         const before = current.items.length;
         current.items = current.items.filter(item => item.id !== id);
         if (before === current.items.length) throw new Error('ITEM_NOT_FOUND');
+        removed = 1;
         return current;
       });
-      return send(response, 200, { removed: id, count: state.items.length });
+      return send(response, 200, { removed: id, removed_count: removed, count: state.items.length });
     }
     return send(response, 405, { error: 'METHOD_NOT_ALLOWED' });
   } catch (error) {
     const code = error?.message || 'INTERNAL_ERROR';
-    const client = new Set(['INVALID_JSON', 'ITEM_NOT_FOUND', 'INVALID_LAYER_ACTION']);
+    const client = new Set(['INVALID_JSON', 'ITEM_NOT_FOUND', 'INVALID_LAYER_ACTION', 'PRODUCT_SOURCE_REQUIRED']);
     console.error('Palette mutation failed', code);
     return send(response, client.has(code) ? 400 : 500, { error: code });
   }

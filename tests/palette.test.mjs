@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { defaultWidth, inferCategory, initialPalette, normalizePalette, validUserId } from '../api/_palette-store.mjs';
-import { applyLayerOrder, applyLayerPosition, displayTitle, intakeMetadata, sameOrigin } from '../api/palette.mjs';
+import { applyLayerOrder, applyLayerPosition, displayTitle, intakeMetadata, prepareCatalogRefetch, removeCatalogProduct, sameOrigin } from '../api/palette.mjs';
 import { uniqueProducts } from '../catalog.mjs';
 
 test('bootstraps the eight existing palette items with server transforms', () => {
@@ -66,4 +66,36 @@ test('reorders item layers and normalizes z indexes', () => {
   assert.deepEqual([...items].sort((a, b) => a.z - b.z).map(item => item.id), ['c', 'b', 'a']);
   applyLayerPosition(items, 'a', 1);
   assert.deepEqual([...items].sort((a, b) => a.z - b.z).map(item => item.id), ['c', 'a', 'b']);
+});
+
+test('refetches every copy while retaining the current product image', () => {
+  const items = [
+    { id: 'a', catalog_id: 'product', status: 'ready', image_url: '/old.png', source_url: 'https://shop.example/product/item' },
+    { id: 'b', catalog_id: 'product', status: 'ready', image_url: '/old.png' },
+    { id: 'other', catalog_id: 'other', status: 'ready', image_url: '/other.png' }
+  ];
+  assert.deepEqual(prepareCatalogRefetch(items, 'b'), {
+    itemId: 'b', catalogId: 'product', input: 'https://shop.example/product/item'
+  });
+  assert.equal(items[0].refreshing, true);
+  assert.equal(items[1].refreshing, true);
+  assert.equal(items[0].image_url, '/old.png');
+  assert.equal(items[2].refreshing, undefined);
+});
+
+test('refetch requires a source URL', () => {
+  assert.throws(
+    () => prepareCatalogRefetch([{ id: 'local', status: 'ready', image_url: '/local.png' }], 'local'),
+    /PRODUCT_SOURCE_REQUIRED/
+  );
+});
+
+test('deletes a catalog product and all of its canvas copies', () => {
+  const result = removeCatalogProduct([
+    { id: 'a', catalog_id: 'product' },
+    { id: 'b', catalog_id: 'product' },
+    { id: 'other', catalog_id: 'other' }
+  ], 'a');
+  assert.equal(result.removed, 2);
+  assert.deepEqual(result.items.map(item => item.id), ['other']);
 });
